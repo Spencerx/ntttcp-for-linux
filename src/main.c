@@ -39,10 +39,12 @@ int run_ntttcp_sender(struct ntttcp_test_endpoint *tep)
 		reply_received = query_receiver_busy_state(tep->synch_socket);
 		if (reply_received == -1) {
 			PRINT_ERR("sender: failed to query receiver state");
+			close(tep->synch_socket);
 			return ERROR_GENERAL;
 		}
 		if (reply_received == 1) {
 			PRINT_ERR("sender: receiver is busy with another test");
+			close(tep->synch_socket);
 			return ERROR_GENERAL;
 		}
 
@@ -50,6 +52,7 @@ int run_ntttcp_sender(struct ntttcp_test_endpoint *tep)
 							   test->warmup + test->duration + test->cooldown);
 		if (reply_received == -1) {
 			PRINT_ERR("sender: failed to negotiate test cycle time with receiver");
+			close(tep->synch_socket);
 			return ERROR_GENERAL;
 		}
 		if (reply_received != test->duration) {
@@ -145,10 +148,12 @@ int run_ntttcp_sender(struct ntttcp_test_endpoint *tep)
 						  tep->test->last_client ? (int)'L' : (int)'R');
 		if (reply_received == -1) {
 			PRINT_ERR("sender: failed to sync with receiver to start test");
+			close(tep->synch_socket);
 			return ERROR_GENERAL;
 		}
 		if (reply_received == 0) {
 			PRINT_ERR("sender: receiver refuse to start test right now");
+			close(tep->synch_socket);
 			return ERROR_GENERAL;
 		}
 
@@ -162,6 +167,8 @@ int run_ntttcp_sender(struct ntttcp_test_endpoint *tep)
 	if (tep->negotiated_test_cycle_time == 0) {
 		sleep(UINT_MAX);
 		/* either sleep has elapsed, or sleep was interrupted by a signal */
+		if (test->no_synch == false)
+			close(tep->synch_socket);
 		return err_code;
 	}
 
@@ -333,11 +340,20 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 
-	default_ntttcp_test(test);
+	// Handle error return from default_ntttcp_test
+	err_code = default_ntttcp_test(test);
+	if (err_code != NO_ERROR) {
+		PRINT_ERR("main: error when initializing default test parameters");
+		free(test->bind_address);
+		free(test);
+		exit(err_code);
+	}
+
 	err_code = parse_arguments(test, argc, argv);
 	if (err_code != NO_ERROR) {
 		PRINT_ERR("main: error when parsing args");
 		print_flags(test);
+		free(test->bind_address);
 		free(test);
 		exit(-1);
 	}
@@ -346,6 +362,7 @@ int main(int argc, char **argv)
 	if (err_code != NO_ERROR) {
 		PRINT_ERR("main: error when verifying the args");
 		print_flags(test);
+		free(test->bind_address);
 		free(test);
 		exit(-1);
 	}
@@ -357,6 +374,7 @@ int main(int argc, char **argv)
 
 	if (!check_resource_limit(test)) {
 		PRINT_ERR("main: error when checking resource limits");
+		free(test->bind_address);
 		free(test);
 		exit(-1);
 	}
