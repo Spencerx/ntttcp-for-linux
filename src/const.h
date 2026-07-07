@@ -5,7 +5,7 @@
 // ----------------------------------------------------------------------------------
 
 #define TOOL_NAME "NTTTCP for Linux"
-#define TOOL_VERSION "1.4.4"
+#define TOOL_VERSION "1.4.5"
 #define AUTHOR_NAME "Shihua (Simon) Xiao, sixiao@microsoft.com"
 
 #define TCP 				SOCK_STREAM
@@ -61,6 +61,7 @@
 #define THREAD_STACK_SIZE		65536
 
 #define NO_ERROR			0
+#define INFO_HELP_DISPLAYED		1
 #define ERROR_GENERAL			-1000
 #define ERROR_ARGS			-1001
 #define ERROR_MEMORY_ALLOC		-1002
